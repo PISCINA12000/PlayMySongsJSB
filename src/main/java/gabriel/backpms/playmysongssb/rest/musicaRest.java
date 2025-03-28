@@ -21,7 +21,7 @@ public class musicaRest {
     @Autowired
     private HttpServletRequest request;
 
-    private static final String UPLOAD_FOLDER = new File("src/main/resources/static/uploads/").getAbsolutePath() + "/";
+    private static final String UPLOAD_FOLDER = "src/main/resources/static/uploads/";
 
     // Esse metodo ira gravar uma musica na pasta de destino
     @PostMapping("gravar")
@@ -35,21 +35,17 @@ public class musicaRest {
         nomeFormatado = nomeFormatado.replaceAll(" ", "");
 
         try {
+            //cria uma pasta na área estática para acomodar os arquivos recebidos, caso não exista
             File uploadFolder = new File(UPLOAD_FOLDER);
+            if (!uploadFolder.exists())
+                uploadFolder.mkdir();
 
-            // Cria a pasta se ela não existir
-            if (!uploadFolder.exists()) {
-                uploadFolder.mkdirs();
-            }
-
-            destino = new File(uploadFolder, nomeFormatado);
-            arquivo.transferTo(destino);
+            //criar um nome novo para o arquivo
+            arquivo.transferTo(new File(uploadFolder.getAbsolutePath() + "/" + nomeFormatado));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Erro("Erro ao armazenar o arquivo. " + e.getMessage()));
         }
-        catch (IOException e) {
-            System.out.println(e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Erro("Erro ao salvar o arquivo: " + e.getMessage()));
-        }
-        return ResponseEntity.ok("Arquivo salvo com sucesso na pasta: " + destino.getAbsolutePath());
+        return ResponseEntity.ok(new Musica(nome, estilo, cantor, arquivo.getOriginalFilename()));
     }
 
     // Esse metodo busca apenas apenas as musicas que se encontram no filtro
@@ -72,7 +68,7 @@ public class musicaRest {
                 }
             }
             if(musicas.isEmpty()){ //nenhuma música correspondeu com o filtro
-                return ResponseEntity.badRequest().body(new Erro("Nenhuma música com o filtro " + filtro));
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Erro("Nenhuma música com o filtro " + filtro));
             }
         }
         return ResponseEntity.ok().body(musicas);
@@ -98,13 +94,13 @@ public class musicaRest {
                 }
             }
             if(musicas.isEmpty()){ //nenhuma música correspondeu com o filtro
-                return ResponseEntity.badRequest().body(new Erro("Nenhuma música cadastrada ainda!!"));
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new Erro("Nenhuma música cadastrada ainda!!"));
             }
         }
         return ResponseEntity.ok().body(musicas);
     }
 
     public String getHostStatic() {
-        return "http://"+request.getServerName().toString()+":"+request.getServerPort()+ "/static/uploads/";
+        return "http://"+request.getServerName().toString()+":"+request.getServerPort()+ "/uploads/";
     }
 }
